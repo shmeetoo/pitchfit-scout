@@ -1,0 +1,8 @@
+.venv
+__pycache__/
+cache/
+
+.env
+
+data/raw
+data/processed
