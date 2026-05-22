@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from config import RAW_DATA_DIR, PROCESSED_DATA_DIR
-from utils import setup_logger
+from src.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
+from src.utils import setup_logger
 
 logger = setup_logger()
 

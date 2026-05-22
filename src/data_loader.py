@@ -2,14 +2,10 @@ import pandas as pd
 import soccerdata as sd
 import requests
 import time
-from utils import setup_logger
-from config import (
-    RAW_DATA_DIR,
-    FOOTBALL_DATA_API_KEY
-)
+from src.utils import setup_logger
+from src.config import RAW_DATA_DIR, FOOTBALL_DATA_API_KEY
 
 logger = setup_logger()
-
 
 class FootballDataLoader:
     PLAYER_STAT_TYPES = [
