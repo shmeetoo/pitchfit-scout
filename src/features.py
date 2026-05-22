@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import soccerdata as sd
 from rapidfuzz import process, fuzz
-from config import PROCESSED_DATA_DIR
-from utils import setup_logger
+from src.config import PROCESSED_DATA_DIR
+from src.utils import setup_logger
 
 logger = setup_logger()
 
@@ -78,12 +78,12 @@ class FeatureEngineer():
 
         self.matches["home_form_5"] = (
             self.matches.groupby("home_team")["home_points"]
-            .transform(lambda x: x.rolling(5, min_periods=1).mean().round(2))
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1).fillna(0).round(2))
         )
 
         self.matches["away_form_5"] = (
             self.matches.groupby("away_team")["away_points"]
-            .transform(lambda x: x.rolling(5, min_periods=1).mean().round(2))
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1).fillna(0).round(2))
         )
 
         logger.info("Created rolling form features")
