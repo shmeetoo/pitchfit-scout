@@ -78,16 +78,52 @@ class FeatureEngineer():
 
         self.matches["home_form_5"] = (
             self.matches.groupby("home_team")["home_points"]
-            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1).fillna(0).round(2))
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
         )
 
         self.matches["away_form_5"] = (
             self.matches.groupby("away_team")["away_points"]
-            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1).fillna(0).round(2))
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
         )
 
         logger.info("Created rolling form features")
 
+    def create_goal_features(self):
+        self.matches = self.matches.sort_values("date")
+
+        # home team goals scored in last 5 games
+        self.matches["home_goals_for_5"] = (
+            self.matches.groupby("home_team")["home_goals"]
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
+        )
+        # home team goals conceded in last 5 games
+        self.matches["home_goals_against_5"] = (
+            self.matches.groupby("home_team")["away_goals"]
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
+        )
+        # away team goals scored in last 5 games
+        self.matches["away_goals_for_5"] = (
+            self.matches.groupby("away_team")["away_goals"]
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
+        )
+        # away team goals conceded in last 5 games
+        self.matches["away_goals_against_5"] = (
+            self.matches.groupby("away_team")["home_goals"]
+            .transform(lambda x: x.rolling(5, min_periods=1).mean().shift(1)).fillna(0).round(2)
+        )
+
+        # goal difference
+        self.matches["home_goal_diff_5"] = (
+            self.matches["home_goals_for_5"] - self.matches["home_goals_against_5"]
+        )
+
+        self.matches["away_goal_diff_5"] = (
+            self.matches["away_goals_for_5"] - self.matches["away_goals_against_5"]
+        )
+
+        logger.info("Created goal features")
+
+    
     def standardise_team_names(self):
         # manual names fix
         replacements = {
@@ -190,6 +226,7 @@ if __name__ == "__main__":
     engineer.create_percentile()
     engineer.create_team_style()
     engineer.create_rolling_form()
+    engineer.create_goal_features()
     engineer.standardise_team_names()
     engineer.assign_elo_rating()
     engineer.save_datasets()
