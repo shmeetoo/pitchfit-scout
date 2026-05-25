@@ -14,6 +14,17 @@ class FeatureEngineer():
         self.matches = pd.read_parquet(PROCESSED_DATA_DIR / "matches.parquet")
         self.elo = pd.read_parquet(PROCESSED_DATA_DIR / "elo_rating_big5.parquet")
 
+    def create_per90_metric(self):
+        # add missing per 90 min metrics
+        cols = [col for col in self.players.columns if col.startswith("performance_")]
+
+        for col in cols:
+            new_col = col + "_per_90"
+            self.players[new_col] = ((self.players[col] / self.players["playing_time_min"]) * 90).round(2)
+            self.players.loc[self.players["playing_time_min"] < 1, new_col] = np.nan
+
+        logger.info("Created per 90 min metrics")
+
     def create_percentile(self):
         stat_cols = [
             col for col in self.players.columns
@@ -223,6 +234,7 @@ class FeatureEngineer():
 
 if __name__ == "__main__":
     engineer = FeatureEngineer()
+    engineer.create_per90_metric()
     engineer.create_percentile()
     engineer.create_team_style()
     engineer.create_rolling_form()
