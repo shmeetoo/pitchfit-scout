@@ -16,16 +16,29 @@ class FeatureEngineer():
 
     def create_per90_metric(self):
         # add missing per 90 min metrics
+        # players
         cols = [col for col in self.players.columns if col.startswith("performance_")]
 
         for col in cols:
-            new_col = col + "_per_90"
-            self.players[new_col] = ((self.players[col] / self.players["playing_time_min"]) * 90).round(2)
-            self.players.loc[self.players["playing_time_min"] < 1, new_col] = np.nan
+            self.players[f"{col}_per_90"] = ((self.players[col] / self.players["playing_time_min"]) * 90).round(2)
+            self.players.loc[self.players["playing_time_min"] < 1, f"{col}_per_90"] = np.nan
+
+        # teams
+        team_cols = [
+            "performance_crs",
+            "performance_fld",
+            "performance_tklw",
+            "performance_int",
+            "performance_fls"
+        ]
+
+        for col in team_cols:
+            self.teams[f"{col}_per_90"] = ((self.teams[col] / self.teams["playing_time_min"]) * 90).round(2)
 
         logger.info("Created per 90 min metrics")
 
     def create_percentile(self):
+        # players
         stat_cols = [
             col for col in self.players.columns
             if (
@@ -41,6 +54,22 @@ class FeatureEngineer():
         
         for col in stat_cols:
             self.players[f"{col}_pct"] = (self.players[col].rank(pct=True) * 100).round(2)
+
+        # teams
+        team_cols = [
+            "per_90_minutes_gls",
+            "per_90_minutes_ast",
+            "standard_sh_per_90",
+            "standard_sot_per_90",
+            "performance_crs_per_90",
+            "performance_fld_per_90",
+            "performance_tklw_per_90",
+            "performance_int_per_90",
+            "performance_fls_per_90"
+        ]
+
+        for col in team_cols:
+            self.teams[f"{col}_pct"] = (self.teams[col].rank(pct=True) * 100).round(2)
 
         logger.info("Created percentile features")
 
