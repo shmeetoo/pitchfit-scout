@@ -67,6 +67,7 @@ class DataPreprocessor:
     def build_player_dataset(self):
         logger.info("Building player dataset...")
 
+        players_values = self.prepare_market_values()
         dfs = [self.load_and_preprocess_file(file) for file in self.PLAYER_FILES]
 
         merged_df = dfs[0].copy()
@@ -85,6 +86,9 @@ class DataPreprocessor:
         }
 
         merged_df["team"] = merged_df["team"].replace(replacements)
+        merged_df = merged_df.merge(
+            players_values[["player", "season", "market_value_mln_eur"]], on=["player", "season"], how="left"
+        ).reset_index(drop=True)
 
         self.save_dataset(merged_df, PROCESSED_DATA_DIR / "players.parquet")
 
@@ -198,6 +202,44 @@ class DataPreprocessor:
         opp_stats = opp_stats.rename(columns={col: f"opp_{col}" for col in cols_to_rename})
 
         return opp_stats
+
+    def prepare_market_values(self):
+        # load player data and values from csv
+        player_values = pd.read_csv(RAW_DATA_DIR / "player_valuations.csv").reset_index(drop=True)
+        player_data = pd.read_csv(RAW_DATA_DIR / "players.csv").reset_index(drop=True)
+
+        # top5 league codes
+        leagues = ["GB1", "ES1", "L1", "IT1", "FR1"]
+
+        # use only top5 leagues data
+        df = player_values[player_values["player_club_domestic_competition_id"].isin(leagues)].copy()
+        df["date"] = pd.to_datetime(df["date"])
+
+        def get_season_code(dates):
+            # example season duration 07.2023-07.2024
+            # change market value date into season format used in other files (e.g. 2324)
+            year = dates.dt.year
+            month = dates.dt.month
+            season = year.astype(str).str[-2:] + (year + 1).astype(str).str[-2:]
+            season = season.where(month >= 7, (year - 1).astype(str).str[-2:] + year.astype(str).str[-2:])
+            return season.astype(int)
+
+        df["season"] = get_season_code(df["date"])
+        df_filtered = df[df["season"].isin([2324, 2425, 2526])].copy()
+        df_filtered = df_filtered.merge(player_data[["player_id", "name"]], on="player_id", how="inner")
+
+        # calculate avg value per season for every player
+        seasonal_avg = (
+            df_filtered.groupby(["player_id", "season", "name", "current_club_name"])["market_value_in_eur"]
+            .mean().reset_index(name="market_value_mln_eur")
+        )
+
+        seasonal_avg["market_value_mln_eur"] = (seasonal_avg["market_value_mln_eur"] / 1000000).round(2)
+        seasonal_avg = seasonal_avg.sort_values(["name", "season"])
+        seasonal_avg = seasonal_avg.drop(columns={"player_id"}).reset_index(drop=True)
+        seasonal_avg = seasonal_avg.rename(columns={"name": "player"})
+
+        return seasonal_avg
 
     def load_and_preprocess_file(self, file):
         path = RAW_DATA_DIR / file
